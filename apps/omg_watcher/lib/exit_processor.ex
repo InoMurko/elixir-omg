@@ -101,8 +101,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Challenged piggybacks are forgotten.
   Returns `db_updates`
   """
-  def challenge_piggybacks(challenges) do
-    GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
+  def delete_challenged_piggybacks(challenges) do
+    GenServer.call(__MODULE__, {:delete_challenged_piggybacks, challenges})
   end
 
   @doc """
@@ -223,9 +223,9 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  def handle_call({:challenge_piggybacks, challenges}, _from, state) do
+  def handle_call({:delete_challenged_piggybacks, challenges}, _from, state) do
     _ = if not Enum.empty?(challenges), do: Logger.info("Recognized piggyback challenges: #{inspect(challenges)}")
-    {new_state, db_updates} = Core.challenge_piggybacks(state, challenges)
+    {new_state, db_updates} = Core.delete_challenged_piggybacks(state, challenges)
     {:reply, {:ok, db_updates}, new_state}
   end
 
