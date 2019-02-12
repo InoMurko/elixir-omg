@@ -216,7 +216,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
       |> Core.find_ifes_in_blocks(state)
 
-    %{state: state, request: request, bad_pb_output: 0, ife_txbytes: txbytes}
+    %{
+      state: state,
+      request: request,
+      ife_input_index: 0,
+      ife_txbytes: txbytes,
+      spending_txbytes: comp1_txbytes,
+      spending_input_index: 1,
+      spending_sig: hd(comp1_signatures)
+    }
   end
 
   deffixture invalid_piggyback_on_output(
@@ -235,7 +243,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # 2. transaction which spends that piggybacked output
     comp = Transaction.new([{3000, 0, 0}], [])
-    {:ok, comp_recovered} = DevCrypto.sign(comp, [alice.priv]) |> Transaction.Recovered.recover_from()
+    comp_txbytes = Transaction.encode(comp)
+    %{sigs: comp_signatures} = signed = DevCrypto.sign(comp, [alice.priv])
+    {:ok, comp_recovered} = Transaction.Recovered.recover_from(signed)
 
     # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
     {state, _} =
@@ -259,7 +269,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
       |> Core.find_ifes_in_blocks(state)
 
-    %{state: state, request: exit_processor_request, bad_pb_output: 4, good_pb_output: 5, ife_txbytes: txbytes}
+    %{
+      state: state,
+      request: exit_processor_request,
+      ife_good_pb_index: 5,
+      ife_input_index: 4,
+      ife_txbytes: txbytes,
+      spending_txbytes: comp_txbytes,
+      spending_input_index: 0,
+      spending_sig: hd(comp_signatures)
+    }
   end
 
   # TODO: will be removed, when persistence and behaviors are tested more thoroughly, without reaching into the guts
@@ -1052,12 +1071,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            invalid_piggyback_on_input: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
-             ife_txbytes: txbytes
+             ife_input_index: ife_input_index,
+             ife_txbytes: ife_txbytes,
+             spending_txbytes: spending_txbytes,
+             spending_input_index: spending_input_index,
+             spending_sig: spending_sig
            }
          } do
-      assert {:ok, %{in_flight_input_index: ^bad_pb_output}} =
-               Core.get_input_challenge_data(request, state, txbytes, bad_pb_output)
+      assert {:ok,
+              %{
+                in_flight_input_index: ^ife_input_index,
+                in_flight_txbytes: ^ife_txbytes,
+                spending_txbytes: ^spending_txbytes,
+                spending_input_index: ^spending_input_index,
+                spending_sig: ^spending_sig
+              }} = Core.get_input_challenge_data(request, state, ife_txbytes, ife_input_index)
     end
 
     @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
@@ -1066,7 +1094,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            invalid_piggyback_on_input: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
+             ife_input_index: bad_pb_output,
              ife_txbytes: txbytes
            }
          } do
@@ -1102,12 +1130,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            invalid_piggyback_on_output: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
-             ife_txbytes: txbytes
+             ife_input_index: bad_pb_output,
+             ife_txbytes: txbytes,
+             spending_txbytes: comp_txbytes,
+             spending_input_index: spending_input_index,
+             spending_sig: spending_sig
            }
          } do
-      assert {:ok, %{in_flight_input_index: ^bad_pb_output}} =
-               Core.get_output_challenge_data(request, state, txbytes, bad_pb_output - 4)
+      assert {:ok,
+              %{
+                in_flight_input_index: ^bad_pb_output,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: ^spending_input_index,
+                spending_sig: ^spending_sig
+              }} = Core.get_output_challenge_data(request, state, txbytes, bad_pb_output - 4)
     end
 
     @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
@@ -1116,7 +1153,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            invalid_piggyback_on_output: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
+             ife_input_index: bad_pb_output,
              ife_txbytes: txbytes
            }
          } do
@@ -1132,7 +1169,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            invalid_piggyback_on_output: %{
              state: state,
              request: request,
-             good_pb_output: good_pb_output,
+             ife_good_pb_index: good_pb_output,
              ife_txbytes: txbytes
            }
          } do
