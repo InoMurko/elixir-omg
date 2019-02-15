@@ -27,12 +27,84 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
+  alias OMG.API.Integration.DepositHelper
+
   @timeout 40_000
   @eth Crypto.zero_address()
 
   @moduletag :integration
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 120_000
+
+  @tag :wrong
+  @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain]
+  test "piggyback in flight exit", %{alice: alice, bob: bob} do
+    {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+    {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
+
+    alice_deposit = DepositHelper.deposit_to_child_chain(alice.addr, 10)
+
+    bob_deposit = DepositHelper.deposit_to_child_chain(bob.addr, 10)
+
+    tx_submit1 =
+      API.TestHelper.create_signed(
+        [{alice_deposit, 0, 0, alice}, {bob_deposit, 0, 0, bob}],
+        @eth,
+        [{alice, 5}, {bob, 15}]
+      )
+
+    {:ok, %{blknum: blknum}} = Client.submit(tx_submit1 |> Transaction.Signed.encode())
+
+    tx_submit2 = API.TestHelper.create_signed([{blknum, 0, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
+    {:ok, _} =
+      Client.submit(
+        tx_submit2
+        |> Transaction.Signed.encode()
+      )
+
+    in_flight_exit_submit = tx_submit1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.in_flight_exit(
+        in_flight_exit_submit["in_flight_tx"],
+        in_flight_exit_submit["input_txs"],
+        in_flight_exit_submit["input_txs_inclusion_proofs"],
+        in_flight_exit_submit["in_flight_tx_sigs"],
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.encode(tx_submit1.raw_tx), 5, bob.addr)
+      |> Eth.DevHelpers.transact_sync!()
+
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.encode(tx_submit1.raw_tx), 1, bob.addr)
+      |> Eth.DevHelpers.transact_sync!()
+
+    tx3 = API.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
+    in_flight_tx =
+      tx3
+      |> Transaction.Signed.encode()
+      |> TestHelper.get_in_flight_exit()
+
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.in_flight_exit(
+        in_flight_tx["in_flight_tx"],
+        in_flight_tx["input_txs"],
+        in_flight_tx["input_txs_inclusion_proofs"],
+        in_flight_tx["in_flight_tx_sigs"],
+        bob.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    # ask for byzantine events first, learn that PB 1 and 3 are invalid
+    assert {:ok, _} = IntegrationTest.wait_for_byzantine_events([%OMG.Watcher.Event.InvalidPiggyback{}.name], 20_000)
+    # ask for proofs
+    assert true == false
+    # challenge piggybacks
+    # observe the result
+  end
 
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher",

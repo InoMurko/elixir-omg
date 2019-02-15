@@ -768,8 +768,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     # Will find all spenders of provided indexed inputs.
     # Remember to check if result contains original tx!
     known_txs
+    |> Enum.filter(& original_tx != &1.signed_tx.raw_tx)
     |> Enum.map(fn ktx -> {ktx, get_double_spends(single_tx_indexed_inputs, ktx)} end)
-    |> Enum.filter(fn {ktx, doublespends} -> doublespends != [] and original_tx != ktx.signed_tx.raw_tx end)
+    |> Enum.filter(fn {ktx, doublespends} -> doublespends != [] end)
     |> Enum.flat_map(fn {ktx, dbl_spends} ->
       {my_indexes, utxo_poses, his_indexes} = :lists.unzip3(dbl_spends)
       Enum.zip([my_indexes, List.duplicate(ktx, length(my_indexes)), utxo_poses, his_indexes])
@@ -1047,7 +1048,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       for {left, left_index} <- inputs,
           {right, right_index} <- known_spent_inputs,
           left == right,
-          left_index <= right_index,
           do: {left_index, left, right_index}
 
     :lists.usort(list)
