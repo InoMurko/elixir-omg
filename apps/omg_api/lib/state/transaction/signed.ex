@@ -70,3 +70,12 @@ defmodule OMG.API.State.Transaction.Signed do
   defp signature_length?(sig) when byte_size(sig) == @signature_length, do: true
   defp signature_length?(_sig), do: false
 end
+
+defimpl String.Chars, for: OMG.API.State.Transaction.Signed do
+  alias OMG.API.State.Transaction.Signed
+  alias OMG.API.State.Transaction
+  def to_string(%Signed{raw_tx: tx}) do
+    hash = tx |> Transaction.hash() |> Base.encode16(case: :lower) |> String.slice(0..4)
+    "#STX<#{hash}>"
+  end
+end

@@ -266,3 +266,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
 end
+
+defimpl String.Chars, for: OMG.Watcher.ExitProcessor.InFlightExitInfo do
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo, as: IFE
+  alias OMG.API.State.Transaction.Signed
+  alias OMG.API.State.Transaction
+  def to_string(%IFE{tx: %Signed{raw_tx: %Transaction{} = tx}}) do
+    hash = tx |> Transaction.hash() |> Base.encode16(case: :lower) |> String.slice(0..4)
+    "#IFE<#{hash}>"
+  end
+end

@@ -52,10 +52,14 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         @eth,
         [{alice, 5}, {bob, 15}]
       )
+    IO.puts("tx1: #{tx_submit1}")
 
+    # Submit tx 1
     {:ok, %{blknum: blknum}} = Client.submit(tx_submit1 |> Transaction.Signed.encode())
 
+    # Submit tx 2
     tx_submit2 = API.TestHelper.create_signed([{blknum, 0, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
+    IO.puts("tx2: #{tx_submit2}")
     {:ok, _} =
       Client.submit(
         tx_submit2
@@ -64,6 +68,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     in_flight_exit_submit = tx_submit1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
+    # IFE tx 1
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.in_flight_exit(
         in_flight_exit_submit["in_flight_tx"],
@@ -74,20 +79,24 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
+    # PB 1
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.encode(tx_submit1.raw_tx), 5, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
+    # PB 2
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.encode(tx_submit1.raw_tx), 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     tx3 = API.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
+    IO.puts("tx3: #{tx3}")
     in_flight_tx =
       tx3
       |> Transaction.Signed.encode()
       |> TestHelper.get_in_flight_exit()
 
+    # IFE tx 3
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.in_flight_exit(
         in_flight_tx["in_flight_tx"],

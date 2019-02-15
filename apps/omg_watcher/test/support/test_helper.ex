@@ -143,4 +143,14 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(competitor_data, ["in_flight_txbytes", "in_flight_proof"])
   end
+
+  # get info about all invalid stuff
+  # is this a status call?
+
+  # get challenge proofs for piggyback on input
+  def get_(transaction) do
+    competitor_data = success?("in_flight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
+
+    decode16(competitor_data, ["in_flight_txbytes", "in_flight_proof"])
+  end
 end

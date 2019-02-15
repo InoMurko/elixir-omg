@@ -97,6 +97,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           }
   end
 
+  defimpl String.Chars, for: KnownTx do
+    def to_string(%KnownTx{} = tx) do
+      hash = tx.signed_tx.raw_tx |> Transaction.hash() |> Base.encode16(case: :lower) |> String.slice(0..4)
+      "#KTX<#{hash}>"
+    end
+  end
+
   @doc """
   Reads database-specific list of exits and turns them into current state
   """
@@ -468,6 +475,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Map.values()
       |> Enum.filter(& &1.is_active)
       |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
+      |> Enum.filter(&Utxo.Position.non_zero?/1)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> Enum.uniq()
 
@@ -686,7 +694,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %ExitProcessor.Request{blocks_result: blocks, piggybacked_blocks_result: piggybacked_blocks},
         state
       ) do
-    known_txs = get_known_txs(Enum.uniq(piggybacked_blocks ++ blocks)) ++ get_known_txs(state)
+    ktxs1 = get_known_txs(piggybacked_blocks)
+    ktxs2 = get_known_txs(blocks)
+    ktxs3 = get_known_txs(state)
+    known_txs = ktxs1 ++ ktxs2 ++ ktxs3
     bad_piggybacks_on_inputs = get_invalid_piggybacks_on_inputs(known_txs, state)
     bad_piggybacks_on_outputs = get_invalid_piggybacks_on_outputs(known_txs, state)
     # produce only one event per IFE, with both pbs on inputs and outputs
@@ -1042,7 +1053,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec get_double_spends(tx_input_info, tx_input_info) :: [{0..3, Utxo.Position.t(), 0..3}]
         when tx_input_info: Transaction.Signed.t() | Transaction.t() | KnownTx.t() | [{Transaction.input(), 0..3}]
-  defp get_double_spends(inputs, known_spent_inputs) when is_list(inputs) and is_list(known_spent_inputs) do
+  def get_double_spends(inputs, known_spent_inputs) when is_list(inputs) and is_list(known_spent_inputs) do
     # TODO: possibly ineffective if Transaction.max_inputs >> 4
     list =
       for {left, left_index} <- inputs,
@@ -1053,7 +1064,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     :lists.usort(list)
   end
 
-  defp get_double_spends(inputs, known_spent_inputs) do
+  def get_double_spends(inputs, known_spent_inputs) do
     get_double_spends(index_inputs(inputs), index_inputs(known_spent_inputs))
   end
 

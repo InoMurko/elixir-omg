@@ -257,3 +257,11 @@ defmodule OMG.API.State.Transaction do
   @spec get_outputs(t()) :: list(output())
   def get_outputs(%__MODULE__{outputs: outputs}), do: outputs
 end
+
+defimpl String.Chars, for: OMG.API.State.Transaction do
+  alias OMG.API.State.Transaction
+  def to_string(%Transaction{} = tx) do
+    hash = tx |> Transaction.hash() |> Base.encode16(case: :lower) |> String.slice(0..4)
+    "#TX<#{hash}>"
+  end
+end
