@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Mixfile do
         convenience_api_mode: false
       ],
       mod: {OMG.Watcher.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :ecto_sql, :telemetry]
     ]
   end
 
@@ -43,8 +43,9 @@ defmodule OMG.Watcher.Mixfile do
     [
       {:phoenix, "~> 1.3"},
       {:plug_cowboy, "~> 1.0"},
-      {:phoenix_ecto, "~> 3.3"},
-      {:postgrex, ">= 0.13.5"},
+      {:phoenix_ecto, "~> 4.0"},
+      {:ecto_sql, "~> 3.0"},
+      {:postgrex, ">= 0.0.0"},
       {:deferred_config, "~> 0.1.1"},
       {:cors_plug, "~> 2.0"},
       {:socket, "~> 0.3"},
@@ -58,7 +59,7 @@ defmodule OMG.Watcher.Mixfile do
       {:omg_api, in_umbrella: true, runtime: false},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:appsignal, "~> 1.0"}
+      {:appsignal, "~> 1.9"}
     ]
   end
 

@@ -42,7 +42,7 @@ defmodule OMG.DB.MixProject do
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       #       OMG-373 (Elixir 1.8) should fix this
       {:briefly, "~> 0.3"},
-      {:appsignal, "~> 1.0"}
+      {:appsignal, "~> 1.9"}
     ]
   end
 end

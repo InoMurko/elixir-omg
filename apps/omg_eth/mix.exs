@@ -51,7 +51,7 @@ defmodule OMG.Eth.MixProject do
         app: false,
         only: [:dev, :test]
       },
-      {:appsignal, "~> 1.0"}
+      {:appsignal, "~> 1.9"}
     ]
   end
 

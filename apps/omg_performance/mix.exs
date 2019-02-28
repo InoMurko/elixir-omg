@@ -26,7 +26,7 @@ defmodule OMG.Performance.MixProject do
     [
       {:briefly, "~> 0.3"},
       {:omg_api, in_umbrella: true, runtime: false},
-      {:appsignal, "~> 1.0"},
+      {:appsignal, "~> 1.9"},
       {:deferred_config, "~> 0.1.1"}
     ]
   end

@@ -26,7 +26,6 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
 config :omg_watcher, OMG.Watcher.DB.Repo,
-  adapter: Ecto.Adapters.Postgres,
   # NOTE: not sure if appropriate, but this allows reasonable blocks to be written to unoptimized Postgres setup
   timeout: 60_000,
   connect_timeout: 60_000

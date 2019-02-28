@@ -22,10 +22,8 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
 
 # Configure your database
 config :omg_watcher, OMG.Watcher.DB.Repo,
-  adapter: Ecto.Adapters.Postgres,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL"},
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  url: {:system, "DATABASE_URL"}
 
 # ## SSL Support
 #

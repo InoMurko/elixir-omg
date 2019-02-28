@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+alias Appsignal.Ecto
+
 defmodule OMG.Watcher.Application do
   @moduledoc false
   use Application
@@ -20,6 +22,13 @@ defmodule OMG.Watcher.Application do
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher)
     DeferredConfig.populate(:omg_rpc)
+
+    :telemetry.attach(
+      "appsignal-ecto",
+      [:activity_logger, :repo, :query],
+      &Ecto.handle_event/4,
+      nil
+    )
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
