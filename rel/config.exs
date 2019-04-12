@@ -85,7 +85,9 @@ release :child_chain do
       xomg_tasks: :load
     ]
   )
-
+  set config_providers: [
+    {OMG.ChildChain.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+  ]
   set(
     commands: [
       init_kv_db: "rel/commands/child_chain/init_kv_db.sh"
